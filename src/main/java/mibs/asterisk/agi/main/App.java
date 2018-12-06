@@ -15,6 +15,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -27,178 +29,305 @@ import org.apache.logging.log4j.Logger;
 
 public class App {
 	private static final Logger logger = LogManager.getLogger(App.class.getName());
-	public static final String CONFIG_NAME="application.properties";
-	public static final int backlog = 10; 
+	public static final String CONFIG_NAME = "application.properties";
+	public static final int backlog = 10;
 
 	private String user;
 	private String password;
 	private String asterisk_host;
 	private int asterisk_port;
 	private String agi_host;
-	private  int agi_port;
+	private int agi_port;
 	private String dbhost;
 	private String dbname;
 	private String dbuser;
 	private String dbpassword;
 	
-	
-    public String getGreeting() {
-        return "Hello world.";
-    }
+	private String control_dbhost;
+	private String control_dbname;
+	private String control_dbuser;
+	private String control_dbpassword;
 
-    private Properties prop;;
-    
-    public App(String file) {
-    	prop = new Properties();
-    	InputStream input;
-    	try {
+	public String getGreeting() {
+		return "Hello world.";
+	}
+
+	private Properties prop;;
+
+	public App(String file) {
+		prop = new Properties();
+		InputStream input;
+		try {
 			input = getClass().getClassLoader().getResourceAsStream(CONFIG_NAME);
 			prop.load(input);
 			user = prop.getProperty("asterisk_user");
-			password= prop.getProperty("asterisk_password");
+			password = prop.getProperty("asterisk_password");
 			asterisk_host = prop.getProperty("asterisk_host");
-			asterisk_port = Integer.parseInt( prop.getProperty("asterisk_port") ) ;
+			asterisk_port = Integer.parseInt(prop.getProperty("asterisk_port"));
 			agi_host = prop.getProperty("agi_host");
-			agi_port = Integer.parseInt( prop.getProperty("agi_port") ) ;
-			dbhost =  prop.getProperty("dbhost");
-			dbname =  prop.getProperty("dbname");
-			dbuser =  prop.getProperty("dbuser");
-			dbpassword =  prop.getProperty("dbpassword");
+			agi_port = Integer.parseInt(prop.getProperty("agi_port"));
+			dbhost = prop.getProperty("dbhost");
+			dbname = prop.getProperty("dbname");
+			dbuser = prop.getProperty("dbuser");
+			dbpassword = prop.getProperty("dbpassword");
+			
+			control_dbhost = prop.getProperty("control_dbhost");
+			control_dbname = prop.getProperty("control_dbname");
+			control_dbuser = prop.getProperty("control_dbuser");
+			control_dbpassword = prop.getProperty("control_dbpassword");
+			
 		} catch (Exception e1) {
 			logger.error("Configuration file: " + CONFIG_NAME + "  is not found!");
 		}
-    }
-  
-    private Optional<Сentconf> getСentconf( String extension ) {
-		String dsURL = "jdbc:mysql://" + dbhost + ":3306/" + dbname + "?useUnicode=yes&characterEncoding=UTF-8"	;
+	}
+
+	private String dsURL() {
+		return "jdbc:mysql://" + dbhost + ":3306/" + dbname + "?useUnicode=yes&characterEncoding=UTF-8";
+	}
+	private String dsControlURL() {
+		return "jdbc:mysql://" + control_dbhost + ":3306/" + control_dbname + "?useUnicode=yes&characterEncoding=UTF-8";
+	}
+	private Optional<Сentconf> getСentconf(String extension) {
+	
 		Сentconf result = null;
-    	try(Connection connect = DriverManager.getConnection(dsURL, dbuser, dbpassword);
-    		Statement statement = connect.createStatement())
-    		{
-    			String sql = "select agentid, queueid, penalty from centerconfig where extension = '" + extension + "'";
-    			ResultSet rs = statement.executeQuery( sql );
-    			rs.next();
-    			result = new Сentconf();
-    			result.setAgentid(rs.getLong("agentid"));
-    			result.setQueueid(rs.getLong("queueid"));
-    			result.setPenalty(rs.getInt("penalty"));
-    			rs.close();
-    		}catch(Exception e) {
-    			logger.error(e.getMessage());
-    		}
-    	return (result!=null) ? Optional.of(result) : Optional.empty();
-    }
-    private Optional<String> getQueueNameById( Long id ){
-    	String dsURL = "jdbc:mysql://" + dbhost + ":3306/" + dbname + "?useUnicode=yes&characterEncoding=UTF-8"	;
+		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
+				Statement statement = connect.createStatement()) {
+			String sql = "select agentid, queueid, penalty from centerconfig where extension = '" + extension + "'";
+			ResultSet rs = statement.executeQuery(sql);
+			rs.next();
+			result = new Сentconf();
+			result.setAgentid(rs.getLong("agentid"));
+			result.setQueueid(rs.getLong("queueid"));
+			result.setPenalty(rs.getInt("penalty"));
+			rs.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return (result != null) ? Optional.of(result) : Optional.empty();
+	}
+
+	private Optional<String> getQueueNameById(Long id) {
+		
 		String result = null;
-    	try(Connection connect = DriverManager.getConnection(dsURL, dbuser, dbpassword);
-    		Statement statement = connect.createStatement())
-    		{
-    			String sql = "select name from queues where id = " + id ;
-    			ResultSet rs = statement.executeQuery( sql );
-    			rs.next();
-    			result = new String( rs.getString("name"));
-    			rs.close();
-    		}catch(Exception e) {
-    			logger.error(e.getMessage());
-    		}
-    	return (result!=null) ? Optional.of(result) : Optional.empty();
-    }
-    private Optional<Long> getPeerIdByName( String name){
-    	String dsURL = "jdbc:mysql://" + dbhost + ":3306/" + dbname + "?useUnicode=yes&characterEncoding=UTF-8"	;
+		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
+				Statement statement = connect.createStatement()) {
+			String sql = "select name from queues where id = " + id;
+			ResultSet rs = statement.executeQuery(sql);
+			rs.next();
+			result = new String(rs.getString("name"));
+			rs.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return (result != null) ? Optional.of(result) : Optional.empty();
+	}
+
+	private Optional<Long> getPeerIdByName(String name) {
+		
 		Long result = null;
-    	try(Connection connect = DriverManager.getConnection(dsURL, dbuser, dbpassword);
-    		Statement statement = connect.createStatement())
-    		{
-    			String sql = "select id from peers where name = '" + name + "'" ;
-    			ResultSet rs = statement.executeQuery( sql );
-    			rs.next();
-    			result = Long.valueOf(rs.getLong("id"));
-    			rs.close();
-    		}catch(Exception e) {
-    			logger.error(e.getMessage());
-    		}
-    	return (result!=null) ? Optional.of(result) : Optional.empty();
-    }
-    private Optional<String> handleQueue(String queueName, String peerName){
-    
-    	Action action = null;
-		try(Socket clientSocket = new Socket(asterisk_host, asterisk_port))
-		{
-			 clientSocket.setSoTimeout(1500);
-			 action = new ActionLogin(clientSocket, user, password, queueName, peerName);
-			 Optional<Action> opt;
-			 try {
-				while((opt = action.getResponce()).isPresent()) {
+		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
+				Statement statement = connect.createStatement()) {
+			String sql = "select id from peers where name = '" + name + "'";
+			ResultSet rs = statement.executeQuery(sql);
+			rs.next();
+			result = Long.valueOf(rs.getLong("id"));
+			rs.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return (result != null) ? Optional.of(result) : Optional.empty();
+	}
+
+	private Optional<String> handleQueue(String queueName, String peerName) {
+
+		Action action = null;
+		try (Socket clientSocket = new Socket(asterisk_host, asterisk_port)) {
+			clientSocket.setSoTimeout(1500);
+			action = new ActionLogin(clientSocket, user, password, queueName, peerName);
+			Optional<Action> opt;
+			try {
+				while ((opt = action.getResponce()).isPresent()) {
 					action = opt.get();
 				}
-			 } catch (AuthenticationFailedException | IOException e) {
+			} catch (AuthenticationFailedException | IOException e) {
 				clientSocket.close();
 			}
 		} catch (Exception e1) {
-			
+
 			logger.error(e1.getMessage());
 		}
-		return (action != null) ? Optional.of( action.getActionResult().getActionResult()) :  Optional.empty();	
-    }
-    private void error(Writer writer, String msg) throws IOException {
-    	writer.write("SET VARIABLE AQMSTATUS " +  msg + "\r\n");
+		return (action != null) ? Optional.of(action.getActionResult().getActionResult()) : Optional.empty();
+	}
+
+	private void error(Writer writer, String msg) throws IOException {
+		writer.write("SET VARIABLE AQMSTATUS " + msg + "\n");
 		writer.flush();
-    }
-    private void saveMemberAction(Сentconf conf, Long peerId, String actionState) {
-    	String dsURL = "jdbc:mysql://" + dbhost + ":3306/" + dbname + "?useUnicode=yes&characterEncoding=UTF-8"	;
-		String result = null;
-    	try(Connection connect = DriverManager.getConnection(dsURL, dbuser, dbpassword);
-    		Statement statement = connect.createStatement())
-    		{
-    			String sql = "insert into members(queueid, agentid, peerid, time, event) values (" + conf.getQueueid() +"," + conf.getAgentid() + "," + peerId +    ;
-    			ResultSet rs = statement.executeQuery( sql );
-    			rs.next();
-    			result = new String( rs.getString("name"));
-    			rs.close();
-    		}catch(Exception e) {
-    			logger.error(e.getMessage());
-    		}
-    	return (result!=null) ? Optional.of(result) : Optional.empty();
-    }
-    public void run() {
-    	System.setProperty("java.net.preferIPv4Stack" , "true");
+
+	}
+
+	private void saveMemberAction(Сentconf conf, Long peerId, String command) {
+		if (command.equals("FAIL")) {
+			logger.error("Save member action get Fail command to execute.");
+			return;
+		}
+		LocalDateTime ld = LocalDateTime.now();
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
+				Statement statement = connect.createStatement()) {
+			String sql = "insert into members(queueid, agentid, peerid, time, event) values (" + conf.getQueueid() + ","
+					+ conf.getAgentid() + "," + peerId + ",'" + ld.format(formatter) + "','" + command + "')";
+
+			statement.executeUpdate(sql);
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+
+	}
+
+	private Optional<String> getInboundRecordCommand(String ext) {
+		String result= null;
+		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
+				Statement statement = connect.createStatement()) {
+			String sql = "select recordin from equipments where phone='" + ext + "'";
+			ResultSet rs = statement.executeQuery(sql);
+			rs.next();
+			result = new String(rs.getString("recordin"));
+			rs.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return (result != null) ? Optional.of(result) : Optional.empty();
+	}
+	private Optional<String> getOutboundRecordCommand(String phone) {
+		String result= null;
+		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
+				Statement statement = connect.createStatement()) {
+			String sql = "select recordout from equipments where phone='" + phone + "'";
+			ResultSet rs = statement.executeQuery(sql);
+			rs.next();
+			result = new String(rs.getString("recordout"));
+			rs.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return (result != null) ? Optional.of(result) : Optional.empty();
+	}
+	private Optional<String> getExternal(String callerid) {
+		String result= null;
+		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
+				Statement statement = connect.createStatement()) {
+			String sql = "select external from equipments where phone='" + callerid + "'";
+			ResultSet rs = statement.executeQuery(sql);
+			rs.next();
+			result = new String(rs.getString("external"));
+			rs.close();
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return (result != null) ? Optional.of(result) : Optional.empty();
+	}
+	public void run() {
+		System.setProperty("java.net.preferIPv4Stack", "true");
 		Map<String, String> agicmd = new TreeMap<>();
 		ExecutorService service = null;
 		try {
-			service= Executors.newSingleThreadExecutor();
-			service.execute(()->{
+			service = Executors.newSingleThreadExecutor();
+			service.execute(() -> {
 				try {
-					InetAddress bindAddr =  InetAddress.getByName( agi_host );
-					try ( ServerSocket serverSocket = new ServerSocket( agi_port, backlog, bindAddr )) {
+					InetAddress bindAddr = InetAddress.getByName(agi_host);
+					try (ServerSocket serverSocket = new ServerSocket(agi_port, backlog, bindAddr)) {
 						while (true) {
 							Socket socket = serverSocket.accept();
 							OutputStream out = socket.getOutputStream();
 							Writer writer = new OutputStreamWriter(out);
-							BufferedReader reader = new BufferedReader( new InputStreamReader(socket.getInputStream()));
+							BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 							String line = null;
-							while((line = reader.readLine())!= null) {
+							while ((line = reader.readLine()) != null) {
+							
 								String key = line.split(":")[0].trim();
 								String value = line.split(":")[1].trim();
 								agicmd.put(key, value);
 								if (line.contains("agi_arg_1")) {
+
+									if (value.equals("record_inbound")) {
+										String extension = agicmd.get("agi_extension");
+										if (extension == null || extension.length() == 0 ) {
+											error(writer, "ERROR_WRONG_EXTENSION");
+											break;
+										}
+										extension = extension.trim();
+										Optional<String> cmd  = getInboundRecordCommand(extension);
+										if (cmd.isPresent()) {
+											writer.write("SET VARIABLE RECORD_INBOUND " + cmd.get() +"\n");
+											writer.flush();
+										}
+										break;
+									}
+									if (value.equals("record_outbound")) {
 									
-									String extension = agicmd.get("agi_extension").trim();
-									Optional<Сentconf> OptCent = getСentconf(extension);
-									if (!OptCent.isPresent()) error(writer, "ERROR_WRONG_CONFIG"); 
-									Optional<String> OptQueue = getQueueNameById(OptCent.get().getQueueid());
-									if (!OptQueue.isPresent()) error(writer, "ERROR_WRONG_QUEUE_ID"); 
+										String channel = agicmd.get("agi_channel").trim();
+										String phone =  channel.substring(channel.indexOf("/") + 1,channel.indexOf("-"));
 									
-									String peer = agicmd.get("agi_channel");
-									if (peer == null) error(writer, "ERROR_WRONG_CHANNEL"); 
-									peer = peer.substring(0, peer.indexOf("-")).trim();
-									
-									Optional<String> opt =  handleQueue(OptQueue.get(), peer);
-									
-									if (opt.isPresent()) {
-										saveMemberAction(OptCent.get(), opt.get());
-										writer.write("SET VARIABLE AQMSTATUS " +  opt.get() + "\r\n");
-										writer.flush();
+										if (phone == null || phone.length() == 0 ) {
+											error(writer, "ERROR_WRONG_EXTENSION");
+											break;
+										}
+										Optional<String> cmd  = getOutboundRecordCommand(phone);
+										if (cmd.isPresent()) {
+											
+											writer.write("SET VARIABLE RECORD_OUTBOUND " + cmd.get() +"\n");
+											writer.flush();
+										}
+										break;
+									}
+									if (value.equals("call_outside")) {
+										String callerid = agicmd.get("agi_callerid");
+										if (callerid == null || callerid.length() == 0 ) {
+											error(writer, "ERROR_WRONG_CALLID");
+											break;
+										}
+										callerid = callerid.trim();
+										Optional<String> cmd  = getExternal(callerid);
+										if (cmd.isPresent()) {
+											writer.write("SET VARIABLE EXTERNAL_CALLID " + cmd.get() +"\n");
+											writer.flush();
+										}
+										break;
+									}	
+									if (value.equals("queue_login")) {
+										String extension = agicmd.get("agi_extension").trim();
+										Optional<Сentconf> OptCent = getСentconf(extension);
+										if (!OptCent.isPresent()) {
+											error(writer, "ERROR_WRONG_CONFIG");
+											break;
+										}
+										Сentconf contConf = OptCent.get();
+										Optional<String> OptQueue = getQueueNameById(contConf.getQueueid());
+										if (!OptQueue.isPresent()) {
+											error(writer, "ERROR_WRONG_QUEUE_ID");
+											break;
+										}
+										String queueName = OptQueue.get();
+										String peerName = agicmd.get("agi_channel");
+										peerName = peerName.substring(0, peerName.indexOf("-")).trim();
+										if (peerName == null || peerName.length() == 0) {
+											error(writer, "ERROR_WRONG_CHANNEL");
+											break;
+										}
+										Optional<Long> optPeerid = getPeerIdByName(peerName);
+										if (!optPeerid.isPresent()) {
+											error(writer, "ERROR_PEER_ID_NOT_FOUND");
+											break;
+										}
+										Long peerId = optPeerid.get();
+										Optional<String> optHandle = handleQueue(queueName, peerName);
+										if (optHandle.isPresent()) {
+											String command = optHandle.get();
+											saveMemberAction(contConf, peerId, command);
+											writer.write("SET VARIABLE AQMSTATUS " + command + "\n");
+											writer.flush();
+										}
 									}
 									break;
 								}
@@ -206,25 +335,26 @@ public class App {
 							writer.close();
 							reader.close();
 							socket.close();
-						}	
-					} catch(IOException e) {
+						}
+					} catch (IOException e) {
 						logger.error(e.getMessage());
-						
+
 					}
 				} catch (UnknownHostException e) {
 					logger.error(e.getMessage());
 				}
-				
+
 			});
-		}finally {
-			if (service != null) service.shutdown();
+		} finally {
+			if (service != null)
+				service.shutdown();
 		}
-    }
-    
-    
-    public static void main(String[] args) {
-    	
-    	new App(CONFIG_NAME).run();;
-        
-    }
+	}
+
+	public static void main(String[] args) {
+
+		new App(CONFIG_NAME).run();
+		;
+
+	}
 }
