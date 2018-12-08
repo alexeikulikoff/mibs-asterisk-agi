@@ -354,7 +354,7 @@ public class App {
 	public static void main(String[] args) {
 
 		new App(CONFIG_NAME).run();
-		;
+	
 
 	}
 }
