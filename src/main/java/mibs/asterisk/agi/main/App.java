@@ -179,6 +179,8 @@ public class App {
 					+ conf.getAgentid() + "," + peerId + ",'" + ld.format(formatter) + "','" + command + "')";
 
 			statement.executeUpdate(sql);
+			
+			
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
