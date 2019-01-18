@@ -21,15 +21,15 @@
 #                    the management call-centers
 ### END INIT INFO
 
-YML="application.yml"
-CONFIG="/usr/local/etc/mibs-asterisk-control/"$YML
+YML="application.properties"
+CONFIG="/usr/local/etc/mibs-asterisk-agi/"$YML
 
 INSTALL_DIR="/usr/local/bin/"
-JAR=$INSTALL_DIR"mibs-asterisk-control.jar"
+JAR=$INSTALL_DIR"mibs-asterisk-agi.jar"
 
-PID="/var/run/mibs-asterisk-control.pid"
+PID="/var/run/mibs-asterisk-agi.pid"
 
-LOG="/var/log/mibs-asterisk-control.log"
+LOG="/var/log/mibs-asterisk-agi.log"
 
 # If JAVA_HOME has not been set, try to determine it.
 if [ -z "$JAVA_HOME" ]; then
@@ -57,7 +57,7 @@ export JAVA_HOME JAVA
 
 case "$1" in
     start)
-   	 	$JAVA -jar $JAR --spring.config.location=$CONFIG 2>&1 >>$LOG &
+   	 	$JAVA -jar $JAR $CONFIG 2>&1 >>$LOG &
 		RES=$!
 		echo $RES > $PID
     	;;
