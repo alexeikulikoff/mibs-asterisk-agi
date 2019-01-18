@@ -355,8 +355,13 @@ public class App {
 
 	public static void main(String[] args) {
 
-		new App(CONFIG_NAME).run();
-	
+	//	new App(CONFIG_NAME).run();
+		if (args != null && args.length > 0 ) {
+			new App(args[0]).run();
+		}else {
+			logger.error("Error! No configuration file provided!");
+		}
+		
 
 	}
 }
