@@ -1,15 +1,15 @@
 #!/bin/bash
 #
-# /etc/init.d/asterisk-control
+# /etc/init.d/asterisk-agi
 #
-# Startup script for Asterisk-control
+# Startup script for Asterisk-agi
 #
 # chkconfig: 2345 80 20
-# description: Starts and stops Asterisk-control
-# pidfile: /var/run/callboard.pid
+# description: Starts and stops Asterisk-agi
+# pidfile: /var/run/asterisk-agi.pid
 
 ### BEGIN INIT INFO
-# Provides:          asterisk-control
+# Provides:          asterisk-agi
 # Required-Start:    
 # Required-Stop:     
 # Should-Start:      
@@ -17,7 +17,7 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: distributed storage system for structured data
-# Description:       Asterisk-control is a distributed (peer-to-peer) system for
+# Description:       Asterisk-agi is a distributed (peer-to-peer) system for
 #                    the management call-centers
 ### END INIT INFO
 
