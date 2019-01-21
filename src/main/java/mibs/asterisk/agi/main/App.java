@@ -1,6 +1,7 @@
 package mibs.asterisk.agi.main;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -56,10 +57,13 @@ public class App {
 
 	public App(String file) {
 		prop = new Properties();
-		InputStream input;
+		FileInputStream fis;
+		
 		try {
-			input = getClass().getClassLoader().getResourceAsStream(CONFIG_NAME);
-			prop.load(input);
+//			input = getClass().getClassLoader().getResourceAsStream(CONFIG_NAME);
+		//	input = getClass().getClassLoader().getResourceAsStream(file);
+			fis = new FileInputStream( file );
+			prop.load( fis );
 			user = prop.getProperty("asterisk_user");
 			password = prop.getProperty("asterisk_password");
 			asterisk_host = prop.getProperty("asterisk_host");
@@ -166,7 +170,7 @@ public class App {
 	}
 
 	private void saveMemberAction(Сentconf conf, Long peerId, String command) {
-		if (command.equals("FAIL")) {
+		if (command.equals("FAILED")) {
 			logger.error("Save member action get Fail command to execute.");
 			return;
 		}
@@ -177,7 +181,7 @@ public class App {
 				Statement statement = connect.createStatement()) {
 			String sql = "insert into members(queueid, agentid, peerid, time, event) values (" + conf.getQueueid() + ","
 					+ conf.getAgentid() + "," + peerId + ",'" + ld.format(formatter) + "','" + command + "')";
-
+			System.out.println(sql);
 			statement.executeUpdate(sql);
 			
 			
@@ -246,7 +250,7 @@ public class App {
 							BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 							String line = null;
 							while ((line = reader.readLine()) != null) {
-							
+
 								String key = line.split(":")[0].trim();
 								String value = line.split(":")[1].trim();
 								agicmd.put(key, value);
