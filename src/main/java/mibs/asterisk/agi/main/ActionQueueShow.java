@@ -13,7 +13,7 @@ public class ActionQueueShow extends AbstractAction implements Action{
 	}
 	@Override
 	public void doCommand() throws IOException {
-		writer.write("Action: COMMAND\r\ncommand: queue show\r\n\r\n");
+		writer.write("Action: COMMAND\r\nActionID:12345\r\ncommand: queue show\r\n\r\n");
 		writer.flush();
 	}
 	@Override

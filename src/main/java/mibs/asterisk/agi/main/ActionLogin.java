@@ -15,7 +15,7 @@ public class ActionLogin extends AbstractAction implements Action{
 	}
 	@Override
 	public void doCommand() throws IOException {
-		writer.write("Action: Login\r\nUsername: " + user + "\r\nSecret: " + password + "\r\n\r\n");
+		writer.write("Action: Login\r\nActionID:12345\r\nUsername: " + user + "\r\nSecret: " + password + "\r\n\r\n");
 		writer.flush();
 	}
 	@Override

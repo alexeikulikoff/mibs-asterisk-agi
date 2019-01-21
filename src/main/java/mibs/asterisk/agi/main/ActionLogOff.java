@@ -17,7 +17,7 @@ public class ActionLogOff extends AbstractAction implements Action{
 	}
 	@Override
 	public void doCommand() throws IOException {
-		writer.write("Action: Logoff\r\n\r\n");
+		writer.write("Action: Logoff\r\nActionID:12345\r\n\r\n");
 		writer.flush();
 		writer.close();
 		reader.close();

@@ -13,7 +13,7 @@ public class ActionRemove extends AbstractAction implements Action{
 	}
 	@Override
 	public void doCommand() throws IOException {
-		writer.write("Action: COMMAND\r\ncommand: queue remove member " + peer +" from " + queue + "\r\n\r\n");
+		writer.write("Action: COMMAND\r\nActionID:12345\r\ncommand: queue remove member " + peer +" from " + queue + "\r\n\r\n");
 		writer.flush();
 	}
 	@Override
