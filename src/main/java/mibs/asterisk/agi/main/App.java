@@ -319,7 +319,7 @@ public class App {
 							BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 							String line = null;
 							while ((line = reader.readLine()) != null) {
-								System.out.println(line);
+							
 								String key = line.split(":")[0].trim();
 								String value = line.split(":")[1].trim();
 								agicmd.put(key, value);
