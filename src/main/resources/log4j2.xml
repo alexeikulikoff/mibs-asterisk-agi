@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="warn" name="MyApp" packages="">
 	<Appenders>
-		<File name="asterisk-agi" fileName="/var/log/asterisk-agi.log">
+		<File name="asterisk-agi" fileName="/var/log/asterisk-agi-trace.log">
 			<PatternLayout>
 				<Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
 			</PatternLayout>
@@ -11,7 +11,7 @@
 		</Async>
 	</Appenders>
 	<Loggers>
-		<Root level="error">
+		<Root level="trace">
 			<AppenderRef ref="Async" />
 		</Root>
 	</Loggers>

@@ -63,10 +63,10 @@ public class QueueParser {
 			}
 	
 		}
-		System.out.println(responce);
+	
 		boolean res = responce.isContain("callcenter", "SIP/7859");
 		
-		System.out.println(res);
+	
 		
 	}
 }

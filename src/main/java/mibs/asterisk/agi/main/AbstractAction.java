@@ -42,7 +42,7 @@ public abstract class AbstractAction {
 		boolean flag = false;
 		for (String line = reader.readLine(); line != null; line = reader.readLine()) {
 			
-			System.out.println(line);
+		
 			if (line.contains("Message: Command output follows")) {
 				flag = true;
 			}

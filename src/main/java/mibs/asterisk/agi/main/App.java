@@ -15,6 +15,7 @@ import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -94,18 +95,27 @@ public class App {
 	private Optional<Сentconf> getСentconf(String extension) {
 	
 		Сentconf result = null;
+		ResultSet rs = null;
 		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
 				Statement statement = connect.createStatement()) {
 			String sql = "select agentid, queueid, penalty from centerconfig where extension = '" + extension + "'";
-			ResultSet rs = statement.executeQuery(sql);
-			rs.next();
-			result = new Сentconf();
-			result.setAgentid(rs.getLong("agentid"));
-			result.setQueueid(rs.getLong("queueid"));
-			result.setPenalty(rs.getInt("penalty"));
-			rs.close();
+			rs = statement.executeQuery(sql);
+			if (rs.next()) {
+				result = new Сentconf();
+				result.setAgentid(rs.getLong("agentid"));
+				result.setQueueid(rs.getLong("queueid"));
+				result.setPenalty(rs.getInt("penalty"));
+			}else {
+				logger.error("Error! Agentid, queueid, penalty not found for extension: " + extension);
+			}
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Error! Config not found for extension: " + extension);
+		}finally {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				logger.error("Error! Cannot close result set for extension " + extension);
+			}
 		}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
@@ -113,40 +123,62 @@ public class App {
 	private Optional<String> getQueueNameById(Long id) {
 		
 		String result = null;
+		ResultSet rs = null;
 		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
 				Statement statement = connect.createStatement()) {
 			String sql = "select name from queues where id = " + id;
-			ResultSet rs = statement.executeQuery(sql);
-			rs.next();
-			result = new String(rs.getString("name"));
-			rs.close();
+			rs = statement.executeQuery(sql);
+			if (rs.next()) {
+				result = new String(rs.getString("name"));
+			}else {
+				logger.error("Error! Cannot fina name from queues for id " + id);
+			}
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Error! Queue is not found for Id:  " + id);
+		}finally {
+		try {
+			rs.close();
+		} catch (SQLException e) {
+			logger.error("Error! Cannot close result set in getQueueNameById for" + id);
 		}
+	}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
 	private Optional<Long> getPeerIdByName(String name) {
 		
 		Long result = null;
+		ResultSet rs = null;
 		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
 				Statement statement = connect.createStatement()) {
-			String sql = "select id from peers where name = '" + name + "'";
-			ResultSet rs = statement.executeQuery(sql);
-			rs.next();
-			result = Long.valueOf(rs.getLong("id"));
-			rs.close();
+			String sql = "select id from peers where name like '%" + name + "'";
+			rs = statement.executeQuery(sql);
+			if (rs.next()) {
+				result = Long.valueOf(rs.getLong("id"));	
+			}else {
+				logger.error("Error! Cannot select id from peer for name:  " + name);
+			}
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Error! Peer is not found for name: " + name);
 		}
+		finally {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				logger.error("Error! Cannot close result set in getPeerIdByName for name" + name);
+			}
+		}	
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
 	private Optional<String> handleQueue(String queueName, String peerName) {
 
 		Action action = null;
+		
+		if (!peerName.startsWith("SIP")) peerName = "SIP/" + peerName;
+		
 		try (Socket clientSocket = new Socket(asterisk_host, asterisk_port)) {
-			clientSocket.setSoTimeout(1500);
+		
 			action = new ActionLogin(clientSocket, user, password, queueName, peerName);
 			Optional<Action> opt;
 			try {
@@ -158,7 +190,7 @@ public class App {
 			}
 		} catch (Exception e1) {
 
-			logger.error(e1.getMessage());
+			logger.error("Error! Wrong queue handling for queue name:  " + queueName + " and peer name: " + peerName);
 		}
 		return (action != null) ? Optional.of(action.getActionResult().getActionResult()) : Optional.empty();
 	}
@@ -171,7 +203,7 @@ public class App {
 
 	private void saveMemberAction(Сentconf conf, Long peerId, String command) {
 		if (command.equals("FAILED")) {
-			logger.error("Save member action get Fail command to execute.");
+			logger.error("Save member action get Fail command.");
 			return;
 		}
 		LocalDateTime ld = LocalDateTime.now();
@@ -181,56 +213,93 @@ public class App {
 				Statement statement = connect.createStatement()) {
 			String sql = "insert into members(queueid, agentid, peerid, time, event) values (" + conf.getQueueid() + ","
 					+ conf.getAgentid() + "," + peerId + ",'" + ld.format(formatter) + "','" + command + "')";
-			System.out.println(sql);
-			statement.executeUpdate(sql);
 			
+			statement.executeUpdate(sql);
+			String info = "Command: " + command + " id:" + conf.getAgentid() + " time: " + ld.format(formatter);
+			
+			logger.trace( info );
 			
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Error! Member is not saved. peerid: " + peerId );
 		}
 
 	}
 
 	private Optional<String> getInboundRecordCommand(String ext) {
 		String result= null;
+		ResultSet rs = null;
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement()) {
 			String sql = "select recordin from equipments where phone='" + ext + "'";
-			ResultSet rs = statement.executeQuery(sql);
-			rs.next();
-			result = new String(rs.getString("recordin"));
-			rs.close();
+			rs = statement.executeQuery(sql);
+			if (rs.next()) {
+				result = new String(rs.getString("recordin"));
+			}else {
+				logger.error("Error! getInboundRecordCommand not found: " + ext );
+			}
+			
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Error! Inbound record command not found: " + ext );
 		}
+		finally {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				logger.error("Error! Cannot close result set in getInboundRecordCommand for extension: " + ext);
+			}
+		}	
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 	private Optional<String> getOutboundRecordCommand(String phone) {
 		String result= null;
+		ResultSet rs = null;
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement()) {
 			String sql = "select recordout from equipments where phone='" + phone + "'";
-			ResultSet rs = statement.executeQuery(sql);
-			rs.next();
-			result = new String(rs.getString("recordout"));
-			rs.close();
+			rs = statement.executeQuery(sql);
+			if(rs.next()) {
+				result = new String(rs.getString("recordout"));
+			}
+			else {
+				logger.error("Error! getOutboundRecordCommand not found: " + phone );
+			}
+			
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Error! Outbound record command not found: " + phone );
 		}
+		finally {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				logger.error("Error! Cannot close result set in getOutboundRecordCommand for phone: " + phone);
+			}
+		}	
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 	private Optional<String> getExternal(String callerid) {
 		String result= null;
+		ResultSet rs = null;
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement()) {
 			String sql = "select external from equipments where phone='" + callerid + "'";
-			ResultSet rs = statement.executeQuery(sql);
-			rs.next();
-			result = new String(rs.getString("external"));
-			rs.close();
+			rs = statement.executeQuery(sql);
+			if (rs.next()) {
+				result = new String(rs.getString("external"));
+			}
+			else {
+				logger.error("Error! get External not found: " + callerid );
+			}
+		
 		} catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error("Error! External not found: " + callerid );
 		}
+		finally {
+			try {
+				rs.close();
+			} catch (SQLException e) {
+				logger.error("Error! Cannot close result set in getExternal for callerid: " + callerid);
+			}
+		}	
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 	public void run() {
@@ -250,7 +319,7 @@ public class App {
 							BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 							String line = null;
 							while ((line = reader.readLine()) != null) {
-
+								System.out.println(line);
 								String key = line.split(":")[0].trim();
 								String value = line.split(":")[1].trim();
 								agicmd.put(key, value);
@@ -315,8 +384,8 @@ public class App {
 											break;
 										}
 										String queueName = OptQueue.get();
-										String peerName = agicmd.get("agi_channel");
-										peerName = peerName.substring(0, peerName.indexOf("-")).trim();
+										String peerName = agicmd.get("agi_callerid").trim();
+										//peerName = peerName.substring(0, peerName.indexOf("-")).trim();
 										if (peerName == null || peerName.length() == 0) {
 											error(writer, "ERROR_WRONG_CHANNEL");
 											break;
@@ -343,11 +412,11 @@ public class App {
 							socket.close();
 						}
 					} catch (IOException e) {
-						logger.error(e.getMessage());
+						logger.error("Error open Server Socketet: "  +  e.getMessage());
 
 					}
 				} catch (UnknownHostException e) {
-					logger.error(e.getMessage());
+					logger.error("Error bind address: " +e.getMessage());
 				}
 
 			});
