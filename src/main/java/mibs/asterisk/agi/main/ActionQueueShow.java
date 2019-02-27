@@ -31,7 +31,8 @@ public class ActionQueueShow extends AbstractAction implements Action{
 		QueueContents content = new QueueContents();
 		CurrentQueue currentQueue =  new CurrentQueue( queue );
 		boolean memberFlag = false;
-		for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+		while (true) {
+			String line = reader.readLine();
 			if (line.contains("Members") ){
 				memberFlag = true;
 			}
@@ -46,7 +47,8 @@ public class ActionQueueShow extends AbstractAction implements Action{
 				memberFlag = false;
 				content.addQueueResponce(currentQueue);
 			}
-			if (line.contains("No Callers")) break;
+			if (line.contains("No Callers") | line.contains("Callers:") | line.contains("Event") ) break;
+		
 		}
 		action = content.isContain(queue, peer) ? new ActionRemove(socket,queue,peer) : new ActionAdd(socket,queue,peer);
 		return (action != null) ? Optional.of(action) : Optional.empty();

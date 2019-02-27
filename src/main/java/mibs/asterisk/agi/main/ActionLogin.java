@@ -25,6 +25,8 @@ public class ActionLogin extends AbstractAction implements Action{
 		
 		Action responce = null;
 		for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+		
+			
 			if (line.contains(" Authentication failed")) {
 				 writer.close();
 				 reader.close();
@@ -34,9 +36,7 @@ public class ActionLogin extends AbstractAction implements Action{
 				responce = new ActionQueueShow(socket, queue, peer);
 				break;
 			}
-			if (line.contains("--END COMMAND--")) {
-				break;
-			}
+		
 		}
 		return (responce != null) ? Optional.of(responce): Optional.empty();
 	}
