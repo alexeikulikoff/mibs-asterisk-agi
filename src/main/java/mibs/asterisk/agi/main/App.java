@@ -374,20 +374,21 @@ public class App {
 	}
 
 	private void recordOutbound(Map<String, String> cmd, Socket socket) throws RecordOutboundException {
-		String channel = cmd.get("agi_channel");
+		String channel = cmd.get("agi_callerid");
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
 			if (!(channel != null && channel.length() > 0)) {
 				writer.write("SET VARIABLE RECORD_OUTBOUND No" + "\n");
 				writer.flush();
 				throw new RecordOutboundException("IOException Error while setting sound recording variable, channel is null");
 			}
-			String phone = channel.substring(channel.indexOf("/") + 1, channel.indexOf("-"));
+		/*	String phone = channel.substring(channel.indexOf("/") + 1, channel.indexOf("-"));
 			if (!(phone != null && phone.length() > 0)) {
 				writer.write("SET VARIABLE RECORD_OUTBOUND No" + "\n");
 				writer.flush();
 				throw new RecordOutboundException("IOException Error while setting sound recording variable, phone is null");
 			}
-			Optional<String> com = getOutboundRecordCommand(phone);
+		 */			
+			Optional<String> com = getOutboundRecordCommand(channel);
 			if (com.isPresent()) {
 				writer.write("SET VARIABLE RECORD_OUTBOUND " + com.get() + "\n");
 				writer.flush();
