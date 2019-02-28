@@ -257,21 +257,35 @@ public class App {
 	private Optional<String> getOutboundRecordCommand(String phone) {
 		String result = null;
 		ResultSet rs = null;
+		ResultSet rc = null;
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement()) {
 			String sql = "select recordout from equipments where phone='" + phone + "'";
 			rs = statement.executeQuery(sql);
 			if (rs.next()) {
 				result = new String(rs.getString("recordout"));
+				logger.trace("Fine caller id for " + phone + " in getOutboundRecordCommand");
 			} else {
-				logger.error("Error! getOutboundRecordCommand not found: " + phone);
+				
+				 sql = "select recordout from equipments where external='" + phone + "'";
+			   
+				 rc = statement.executeQuery(sql);
+				 if (rc.next()) {
+					 	result = new String(rc.getString("recordout"));
+						logger.trace("Find recordout :" +  result + " for callerid  " + phone);
+						
+					} else {
+				 	logger.error("Error! getOutboundRecordCommand not found: " + phone);
+				}	
 			}
 
 		} catch (Exception e) {
+			e.printStackTrace();
 			logger.error("Error! Outbound record command not found: " + phone);
 		} finally {
 			try {
 				rs.close();
+				rc.close();
 			} catch (SQLException e) {
 				logger.error("Error! Cannot close result set in getOutboundRecordCommand for phone: " + phone);
 			}
@@ -375,6 +389,8 @@ public class App {
 
 	private void recordOutbound(Map<String, String> cmd, Socket socket) throws RecordOutboundException {
 		String channel = cmd.get("agi_callerid");
+		
+	
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
 			if (!(channel != null && channel.length() > 0)) {
 				writer.write("SET VARIABLE RECORD_OUTBOUND No" + "\n");
