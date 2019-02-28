@@ -134,7 +134,7 @@ public class App {
 			if (rs.next()) {
 				result = new String(rs.getString("name"));
 			} else {
-				logger.error("Error! Cannot fina name from queues for id " + id);
+				logger.error("Error! Cannot find name from queues for id " + id);
 			}
 		} catch (Exception e) {
 			logger.error("Error! Queue is not found for Id:  " + id);
@@ -322,28 +322,30 @@ public class App {
 			if (!OptCent.isPresent()) {
 				writeCmd(writer, "QUEUE_LOGIN_ERROR");
 				logger.error("Error! Queue login error, extension:  " + extension + " is not found");
+			}else {
+				Сentconf contConf = OptCent.get();
+				Optional<String> OptQueue = getQueueNameById(contConf.getQueueid());
+				if (!OptQueue.isPresent()) {
+					writeCmd(writer, "QUEUE_LOGIN_ERROR");
+					logger.error("Error! Queue login error, queue for id:  " + contConf.getQueueid() + " is not found");
+				}else {
+					String queueName = OptQueue.get();
+					Optional<Long> optPeerid = getPeerIdByName(peerName);
+					if (!optPeerid.isPresent()) {
+						writeCmd(writer, "QUEUE_LOGIN_ERROR");
+						logger.error("Error! Queue login error, peer with name:  " + peerName + " is not found");
+					}else {
+						Long peerId = optPeerid.get();
+						Optional<String> optHandle = handleQueue(queueName, peerName);
+						if (optHandle.isPresent()) {
+							String command = optHandle.get();
+							saveMemberAction(contConf, peerId, command);
+							writer.write("SET VARIABLE AQMSTATUS " + command + "\n");
+							writer.flush();
+						}
+					}
+				}
 			}
-			Сentconf contConf = OptCent.get();
-			Optional<String> OptQueue = getQueueNameById(contConf.getQueueid());
-			if (!OptQueue.isPresent()) {
-				writeCmd(writer, "QUEUE_LOGIN_ERROR");
-				logger.error("Error! Queue login error, queue for id:  " + contConf.getQueueid() + " is not found");
-			}
-			String queueName = OptQueue.get();
-			Optional<Long> optPeerid = getPeerIdByName(peerName);
-			if (!optPeerid.isPresent()) {
-				writeCmd(writer, "QUEUE_LOGIN_ERROR");
-				logger.error("Error! Queue login error, peer with name:  " + peerName + " is not found");
-			}
-			Long peerId = optPeerid.get();
-			Optional<String> optHandle = handleQueue(queueName, peerName);
-			if (optHandle.isPresent()) {
-				String command = optHandle.get();
-				saveMemberAction(contConf, peerId, command);
-				writer.write("SET VARIABLE AQMSTATUS " + command + "\n");
-				writer.flush();
-			}
-
 		} catch (IOException e) {
 			throw new QueueLoginException(
 					"Error while logging into queue for extension: " + extension + " and peer :" + peerName);
