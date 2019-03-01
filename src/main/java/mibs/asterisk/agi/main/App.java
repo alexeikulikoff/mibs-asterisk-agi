@@ -319,6 +319,9 @@ public class App {
 	}
 
 	private void queueLogin(Map<String, String> cmd, Socket socket) throws QueueLoginException {
+		
+		logger.trace("Queue login/logout: " + cmd);
+		
 		String extension = cmd.get("agi_extension");
 		String peerName = cmd.get("agi_callerid");
 		
