@@ -10,10 +10,13 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 
 public class ActionQueueShow extends AbstractAction implements Action{
-
+	private static final Logger logger = LogManager.getLogger(ActionQueueShow.class.getName());
 	private final Pattern pt = Pattern.compile("SIP/\\d+");
 	
 	public ActionQueueShow(Socket s,String queue, String peer) throws IOException {
@@ -33,6 +36,7 @@ public class ActionQueueShow extends AbstractAction implements Action{
 		boolean memberFlag = false;
 		while (true) {
 			String line = reader.readLine();
+			logger.trace(line);
 			if (line.contains("Members") ){
 				memberFlag = true;
 			}

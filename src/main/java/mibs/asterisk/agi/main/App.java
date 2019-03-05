@@ -98,27 +98,22 @@ public class App {
 	private Optional<Сentconf> getСentconf(String extension) {
 
 		Сentconf result = null;
-		ResultSet rs = null;
+		String sql = "select agentid, queueid, penalty from centerconfig where extension = '" + extension.trim() + "'";
 		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
-				Statement statement = connect.createStatement()) {
-			String sql = "select agentid, queueid, penalty from centerconfig where extension = '" + extension + "'";
-			rs = statement.executeQuery(sql);
-			if (rs.next()) {
-				result = new Сentconf();
-				result.setAgentid(rs.getLong("agentid"));
-				result.setQueueid(rs.getLong("queueid"));
-				result.setPenalty(rs.getInt("penalty"));
-			} else {
-				logger.error("Error! Agentid, queueid, penalty not found for extension: " + extension);
+				Statement statement = connect.createStatement();
+				ResultSet rs = statement.executeQuery(sql)) {
+			if (rs != null) {
+				if (rs.next()) {
+					result = new Сentconf();
+					result.setAgentid(rs.getLong("agentid"));
+					result.setQueueid(rs.getLong("queueid"));
+					result.setPenalty(rs.getInt("penalty"));
+				} else {
+					logger.trace("Can't find agentid, queueid, penalty for extension: " + extension);
+				}
 			}
 		} catch (Exception e) {
-			logger.error("Error! Config not found for extension: " + extension);
-		} finally {
-			try {
-				rs.close();
-			} catch (SQLException e) {
-				logger.error("Error! Cannot close result set for extension " + extension);
-			}
+			logger.error("Error! Exception while finding  agentid, queueid for extension: " + extension);
 		}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
@@ -126,49 +121,39 @@ public class App {
 	private Optional<String> getQueueNameById(Long id) {
 
 		String result = null;
-		ResultSet rs = null;
+		String sql = "select name from queues where id = " + id;
 		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
-				Statement statement = connect.createStatement()) {
-			String sql = "select name from queues where id = " + id;
-			rs = statement.executeQuery(sql);
-			if (rs.next()) {
-				result = new String(rs.getString("name"));
-			} else {
-				logger.error("Error! Cannot find name from queues for id " + id);
+				Statement statement = connect.createStatement();
+				ResultSet rs = statement.executeQuery(sql)) {
+
+			if (rs != null) {
+				if (rs.next()) {
+					result = new String(rs.getString("name"));
+				} else {
+					logger.error("Error! Cannot find name from queues for id " + id);
+				}
 			}
+
 		} catch (Exception e) {
 			logger.error("Error! Queue is not found for Id:  " + id);
-		} finally {
-			try {
-				rs.close();
-			} catch (SQLException e) {
-				logger.error("Error! Cannot close result set in getQueueNameById for" + id);
-			}
 		}
+
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
 	private Optional<Long> getPeerIdByName(String name) {
-
 		Long result = null;
-		ResultSet rs = null;
+		String sql = "select id from peers where name like '%" + name.trim() + "'";
 		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
-				Statement statement = connect.createStatement()) {
-			String sql = "select id from peers where name like '%" + name + "'";
-			rs = statement.executeQuery(sql);
+				Statement statement = connect.createStatement();
+				ResultSet rs = statement.executeQuery(sql)) {
 			if (rs.next()) {
 				result = Long.valueOf(rs.getLong("id"));
 			} else {
-				logger.error("Error! Cannot select id from peer for name:  " + name);
+				logger.trace("Can't find peerid for name:  " + name);
 			}
 		} catch (Exception e) {
-			logger.error("Error! Peer is not found for name: " + name);
-		} finally {
-			try {
-				rs.close();
-			} catch (SQLException e) {
-				logger.error("Error! Cannot close result set in getPeerIdByName for name" + name);
-			}
+			logger.error("Error! Exceptionwhile finding peerid for name: '" + name + "' with message " + e.getMessage());
 		}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
@@ -183,17 +168,20 @@ public class App {
 		try (Socket clientSocket = new Socket(asterisk_host, asterisk_port)) {
 
 			action = new ActionLogin(clientSocket, user, password, queueName, peerName);
+			logger.trace(action);
 			Optional<Action> opt;
 			try {
 				while ((opt = action.getResponce()).isPresent()) {
 					action = opt.get();
+					logger.trace(action);
 				}
 			} catch (AuthenticationFailedException | IOException e) {
+				logger.error("Error! AuthenticationFailedException | IOException in queue handling  with message:" + e.getMessage());
 				clientSocket.close();
 			}
 		} catch (Exception e1) {
 
-			logger.error("Error! Wrong queue handling for queue name:  " + queueName + " and peer name: " + peerName);
+			logger.error("Error! Wrong queue handling for queue name:  " + queueName + " and peer name: " + peerName + " with message:" + e1.getMessage());
 		}
 		return (action != null) ? Optional.of(action.getActionResult().getActionResult()) : Optional.empty();
 	}
@@ -231,49 +219,49 @@ public class App {
 
 	private Optional<String> getInboundRecordCommand(String ext) {
 		String result = null;
-		String sql = "select recordin from equipments where phone='" + ext + "'";
+		String sql = "select recordin from equipments where phone='" + ext.trim() + "'";
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement();
 				ResultSet rs = statement.executeQuery(sql)) {
-				if (rs!=null) {
-					if (rs.next()) {
-						result = new String(rs.getString("recordin"));
-					} else {
-						logger.trace("Can't find recordin for extension: " + ext);
-					}	
+			if (rs != null) {
+				if (rs.next()) {
+					result = new String(rs.getString("recordin"));
+				} else {
+					logger.trace("Can't find recordin for extension: " + ext);
 				}
+			}
 		} catch (Exception e) {
-			logger.error("Error! Exception while finding recordin for extension '" + ext +"' with message " + e.getMessage());
-		} 
+			logger.error("Error! Exception while finding recordin for extension '" + ext + "' with message "
+					+ e.getMessage());
+		}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
 	private Optional<String> getOutboundRecordCommand(String phone) {
 		String result = null;
-	
-		String sql = "select recordout from equipments where phone='" + phone + "'";
-		try (
-				Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
+
+		String sql = "select recordout from equipments where phone='" + phone.trim() + "'";
+		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement();
-				ResultSet rs = statement.executeQuery(sql))
-			{
-			  if (rs != null) {
+				ResultSet rs = statement.executeQuery(sql)) {
+			if (rs != null) {
 				if (rs.next()) {
 					result = new String(rs.getString("recordout"));
 					logger.trace("Fine caller id for " + phone + " in getOutboundRecordCommand");
 				} else {
-					 sql = "select recordout from equipments where external='" + phone + "'";
-					 try(ResultSet rc = statement.executeQuery(sql)){
-						 if (rc != null) {
-							 if (rc.next()) {
-								 	result = new String(rc.getString("recordout"));
-									logger.trace("Find recordout : '" +  result + "' for callerid  " + phone);
-								} else {
-									logger.trace("Can't find recordout for phone: " + phone);
-							}	 
-						 }
-					 } catch (Exception e) {
-						logger.error("Error! Exception while finding external number: " + phone + " with message:  " + e.getMessage());
+					sql = "select recordout from equipments where external='" + phone.trim() + "'";
+					try (ResultSet rc = statement.executeQuery(sql)) {
+						if (rc != null) {
+							if (rc.next()) {
+								result = new String(rc.getString("recordout"));
+								logger.trace("Find recordout : '" + result + "' for callerid  " + phone);
+							} else {
+								logger.trace("Can't find recordout for phone: " + phone);
+							}
+						}
+					} catch (Exception e) {
+						logger.error("Error! Exception while finding external number: " + phone + " with message:  "
+								+ e.getMessage());
 					}
 				}
 			}
@@ -285,33 +273,33 @@ public class App {
 
 	private Optional<String> getExternal(String callerid) {
 		String result = null;
-		String sql = "select external from equipments where phone='" + callerid + "'";
+		String sql = "select external from equipments where phone='" + callerid.trim() + "'";
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement();
 				ResultSet rs = statement.executeQuery(sql)) {
-			
-			if (rs != null ) {
+
+			if (rs != null) {
 				if (rs.next()) {
-					result = new String(rs.getString("external"));
+					result = rs.getString("external");
 				} else {
-					logger.trace("Can't find external for callerid '" + callerid + "'");
+					logger.trace("Can't find external for phone '" + callerid + "'");
 				}
 			}
 		} catch (Exception e) {
 			logger.error("Error! Exception while finding external  '" + callerid + "' with message " + e.getMessage());
-		} 
+		}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
 	private void queueLogin(Map<String, String> cmd, Socket socket) throws QueueLoginException {
-		
+
 		logger.trace("Queue login/logout: " + cmd);
-		
+
 		String extension = cmd.get("agi_extension");
 		String peerName = cmd.get("agi_callerid");
-		
+
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
-			
+
 			if (!(extension != null && extension.length() > 0)) {
 				writeCmd(writer, "QUEUE_LOGIN_ERROR");
 				throw new QueueLoginException("Error while logging into queue, extension is null");
@@ -324,19 +312,19 @@ public class App {
 			if (!OptCent.isPresent()) {
 				writeCmd(writer, "QUEUE_LOGIN_ERROR");
 				logger.error("Error! Queue login error, extension:  " + extension + " is not found");
-			}else {
+			} else {
 				Сentconf contConf = OptCent.get();
 				Optional<String> OptQueue = getQueueNameById(contConf.getQueueid());
 				if (!OptQueue.isPresent()) {
 					writeCmd(writer, "QUEUE_LOGIN_ERROR");
 					logger.error("Error! Queue login error, queue for id:  " + contConf.getQueueid() + " is not found");
-				}else {
+				} else {
 					String queueName = OptQueue.get();
 					Optional<Long> optPeerid = getPeerIdByName(peerName);
 					if (!optPeerid.isPresent()) {
 						writeCmd(writer, "QUEUE_LOGIN_ERROR");
 						logger.error("Error! Queue login error, peer with name:  " + peerName + " is not found");
-					}else {
+					} else {
 						Long peerId = optPeerid.get();
 						Optional<String> optHandle = handleQueue(queueName, peerName);
 						if (optHandle.isPresent()) {
@@ -349,8 +337,8 @@ public class App {
 				}
 			}
 		} catch (IOException e) {
-			throw new QueueLoginException(
-					"Error while logging into queue for extension: " + extension + " and peer :" + peerName + " with message " + e.getMessage());
+			throw new QueueLoginException("Error while logging into queue for extension: " + extension + " and peer :"
+					+ peerName + " with message " + e.getMessage());
 		}
 
 	}
@@ -363,7 +351,7 @@ public class App {
 				writer.write("SET VARIABLE EXTERNAL_CALLID No" + "\n");
 				writer.flush();
 				throw new CallOutsideException("Error while calling outside, callerid is null.");
-				
+
 			}
 			Optional<String> com = getExternal(callerid);
 			if (com.isPresent()) {
@@ -377,47 +365,52 @@ public class App {
 
 	private void recordOutbound(Map<String, String> cmd, Socket socket) throws RecordOutboundException {
 		String channel = cmd.get("agi_callerid");
-		
-	
+
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
 			if (!(channel != null && channel.length() > 0)) {
 				writer.write("SET VARIABLE RECORD_OUTBOUND No" + "\n");
 				writer.flush();
-				throw new RecordOutboundException("IOException Error while setting sound recording variable, channel is null");
+				throw new RecordOutboundException(
+						"IOException Error while setting sound recording variable, channel is null");
 			}
-		/*	String phone = channel.substring(channel.indexOf("/") + 1, channel.indexOf("-"));
-			if (!(phone != null && phone.length() > 0)) {
-				writer.write("SET VARIABLE RECORD_OUTBOUND No" + "\n");
-				writer.flush();
-				throw new RecordOutboundException("IOException Error while setting sound recording variable, phone is null");
-			}
-		 */			
+			/*
+			 * String phone = channel.substring(channel.indexOf("/") + 1,
+			 * channel.indexOf("-")); if (!(phone != null && phone.length() > 0)) {
+			 * writer.write("SET VARIABLE RECORD_OUTBOUND No" + "\n"); writer.flush(); throw
+			 * new
+			 * RecordOutboundException("IOException Error while setting sound recording variable, phone is null"
+			 * ); }
+			 */
 			Optional<String> com = getOutboundRecordCommand(channel);
 			if (com.isPresent()) {
 				writer.write("SET VARIABLE RECORD_OUTBOUND " + com.get() + "\n");
 				writer.flush();
 			}
 		} catch (IOException e) {
-			throw new RecordOutboundException("IOException has occured while setting outbound sound recording variable");
+			throw new RecordOutboundException(
+					"IOException has occured while setting outbound sound recording variable");
 		}
 	}
+
 	private void recordInbound(Map<String, String> cmd, Socket socket) throws RecordInboundException {
 		String extension = cmd.get("agi_extension");
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
 			if (!(extension != null && extension.length() > 0)) {
 				writer.write("SET VARIABLE RECORD_INBOUND No" + "\n");
 				writer.flush();
-				throw new RecordInboundException("IOException has occured while setting inbound sound recording variable, extension is null");
+				throw new RecordInboundException(
+						"IOException has occured while setting inbound sound recording variable, extension is null");
 			}
 			Optional<String> com = getInboundRecordCommand(extension);
 			if (com.isPresent()) {
-				writer.write("SET VARIABLE RECORD_INBOUND " +com.get() + "\n");
+				writer.write("SET VARIABLE RECORD_INBOUND " + com.get() + "\n");
 				writer.flush();
 			}
 		} catch (IOException e) {
 			throw new RecordInboundException("IOException has occured while setting inbound sound recording variable");
 		}
 	}
+
 	private void handleAGICommand(Map<String, String> cmd, Socket socket) {
 
 		String command = cmd.get("agi_arg_1");
@@ -435,14 +428,14 @@ public class App {
 				logger.error("Error! CallOutsideException has occurred with message: " + e.getMessage());
 			}
 		}
-		if (command.equals("record_outbound")){
+		if (command.equals("record_outbound")) {
 			try {
 				recordOutbound(cmd, socket);
 			} catch (RecordOutboundException e) {
 				logger.error("Error! RecordOutboundException has occurred with message: " + e.getMessage());
 			}
 		}
-		if (command.equals("record_inbound")){
+		if (command.equals("record_inbound")) {
 			try {
 				recordInbound(cmd, socket);
 			} catch (RecordInboundException e) {

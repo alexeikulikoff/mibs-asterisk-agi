@@ -8,8 +8,6 @@ import java.util.Optional;
 public interface Action {
 	
 	void doCommand() throws IOException;
-
-	
 	Optional<Action> getResponce() throws IOException, AuthenticationFailedException;
 	
 	default AgentState getActionResult() {

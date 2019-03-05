@@ -4,10 +4,14 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.Optional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 
 public class ActionLogin extends AbstractAction implements Action{
 	private String user;
 	private String password;
+	private static final Logger logger = LogManager.getLogger(ActionLogin.class.getName());
 	public ActionLogin(Socket s,  String user, String password, String queue, String peer) throws IOException {
 		super(s, queue, peer);
 		this.user = user;
@@ -25,7 +29,7 @@ public class ActionLogin extends AbstractAction implements Action{
 		
 		Action responce = null;
 		for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-		
+			logger.trace(line);
 			
 			if (line.contains(" Authentication failed")) {
 				 writer.close();
