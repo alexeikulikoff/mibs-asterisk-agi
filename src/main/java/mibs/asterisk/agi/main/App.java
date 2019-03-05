@@ -231,90 +231,75 @@ public class App {
 
 	private Optional<String> getInboundRecordCommand(String ext) {
 		String result = null;
-		ResultSet rs = null;
+		String sql = "select recordin from equipments where phone='" + ext + "'";
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
-				Statement statement = connect.createStatement()) {
-			String sql = "select recordin from equipments where phone='" + ext + "'";
-			rs = statement.executeQuery(sql);
-			if (rs.next()) {
-				result = new String(rs.getString("recordin"));
-			} else {
-				logger.error("Error! getInboundRecordCommand not found: " + ext);
-			}
-
+				Statement statement = connect.createStatement();
+				ResultSet rs = statement.executeQuery(sql)) {
+				if (rs!=null) {
+					if (rs.next()) {
+						result = new String(rs.getString("recordin"));
+					} else {
+						logger.trace("Can't find recordin for extension: " + ext);
+					}	
+				}
 		} catch (Exception e) {
-			logger.error("Error! Inbound record command not found: " + ext);
-		} finally {
-			try {
-				rs.close();
-			} catch (SQLException e) {
-				logger.error("Error! Cannot close result set in getInboundRecordCommand for extension: " + ext);
-			}
-		}
+			logger.error("Error! Exception while finding recordin for extension '" + ext +"' with message " + e.getMessage());
+		} 
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
 	private Optional<String> getOutboundRecordCommand(String phone) {
 		String result = null;
-		ResultSet rs = null;
-		ResultSet rc = null;
-		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
-				Statement statement = connect.createStatement()) {
-			String sql = "select recordout from equipments where phone='" + phone + "'";
-			rs = statement.executeQuery(sql);
-			if (rs.next()) {
-				result = new String(rs.getString("recordout"));
-				logger.trace("Fine caller id for " + phone + " in getOutboundRecordCommand");
-			} else {
-				
-				 sql = "select recordout from equipments where external='" + phone + "'";
-			   
-				 rc = statement.executeQuery(sql);
-				 if (rc.next()) {
-					 	result = new String(rc.getString("recordout"));
-						logger.trace("Find recordout :" +  result + " for callerid  " + phone);
-						
-					} else {
-				 	logger.error("Error! getOutboundRecordCommand not found: " + phone);
-				}	
+	
+		String sql = "select recordout from equipments where phone='" + phone + "'";
+		try (
+				Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
+				Statement statement = connect.createStatement();
+				ResultSet rs = statement.executeQuery(sql))
+			{
+			  if (rs != null) {
+				if (rs.next()) {
+					result = new String(rs.getString("recordout"));
+					logger.trace("Fine caller id for " + phone + " in getOutboundRecordCommand");
+				} else {
+					 sql = "select recordout from equipments where external='" + phone + "'";
+					 try(ResultSet rc = statement.executeQuery(sql)){
+						 if (rc != null) {
+							 if (rc.next()) {
+								 	result = new String(rc.getString("recordout"));
+									logger.trace("Find recordout : '" +  result + "' for callerid  " + phone);
+								} else {
+									logger.trace("Can't find recordout for phone: " + phone);
+							}	 
+						 }
+					 } catch (Exception e) {
+						logger.error("Error! Exception while finding external number: " + phone + " with message:  " + e.getMessage());
+					}
+				}
 			}
-
 		} catch (Exception e) {
-			e.printStackTrace();
-			logger.error("Error! Outbound record command not found: " + phone);
-		} finally {
-			try {
-				rs.close();
-				rc.close();
-			} catch (SQLException e) {
-				logger.error("Error! Cannot close result set in getOutboundRecordCommand for phone: " + phone);
-			}
+			logger.error("Error! Exception while finding phone: " + phone + " with message " + e.getMessage());
 		}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
 	private Optional<String> getExternal(String callerid) {
 		String result = null;
-		ResultSet rs = null;
+		String sql = "select external from equipments where phone='" + callerid + "'";
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
-				Statement statement = connect.createStatement()) {
-			String sql = "select external from equipments where phone='" + callerid + "'";
-			rs = statement.executeQuery(sql);
-			if (rs.next()) {
-				result = new String(rs.getString("external"));
-			} else {
-				logger.error("Error! get External not found: " + callerid);
+				Statement statement = connect.createStatement();
+				ResultSet rs = statement.executeQuery(sql)) {
+			
+			if (rs != null ) {
+				if (rs.next()) {
+					result = new String(rs.getString("external"));
+				} else {
+					logger.trace("Can't find external for callerid '" + callerid + "'");
+				}
 			}
-
 		} catch (Exception e) {
-			logger.error("Error! External not found: " + callerid);
-		} finally {
-			try {
-				rs.close();
-			} catch (SQLException e) {
-				logger.error("Error! Cannot close result set in getExternal for callerid: " + callerid);
-			}
-		}
+			logger.error("Error! Exception while finding external  '" + callerid + "' with message " + e.getMessage());
+		} 
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
@@ -365,7 +350,7 @@ public class App {
 			}
 		} catch (IOException e) {
 			throw new QueueLoginException(
-					"Error while logging into queue for extension: " + extension + " and peer :" + peerName);
+					"Error while logging into queue for extension: " + extension + " and peer :" + peerName + " with message " + e.getMessage());
 		}
 
 	}
