@@ -51,7 +51,7 @@ public class ActionQueueShow extends AbstractAction implements Action{
 				memberFlag = false;
 				content.addQueueResponce(currentQueue);
 			}
-			if (line.contains("No Callers") | line.contains("Callers:") | line.contains("Event") ) break;
+			if (line.contains("No Callers") | line.contains("Callers:")  ) break;
 		
 		}
 		action = content.isContain(queue, peer) ? new ActionRemove(socket,queue,peer) : new ActionAdd(socket,queue,peer);

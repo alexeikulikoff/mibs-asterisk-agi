@@ -119,7 +119,6 @@ public class App {
 	}
 
 	private Optional<String> getQueueNameById(Long id) {
-
 		String result = null;
 		String sql = "select name from queues where id = " + id;
 		try (Connection connect = DriverManager.getConnection(dsURL(), dbuser, dbpassword);
