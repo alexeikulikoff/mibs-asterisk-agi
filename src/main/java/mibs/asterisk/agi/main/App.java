@@ -221,18 +221,13 @@ public class App {
 		String result = null;
 		String peer = null;
 		if (channel.contains("-")) {
-			peer = channel.split("-")[0];
+			String c0 = channel.split("-")[0];
+			peer = c0.substring(c0.lastIndexOf("/") + 1 , c0.length());
 		}else {
 			logger.error("Error! Channel " + channel + " has wrong format ");
 			return  Optional.empty();
 		}
-		if (peer.startsWith("SIP/")) {
-			peer = peer.replace("SIP/", "").trim();
-		}else {
-			logger.error("Error! SIP Channel " + channel + " has wrong format ");
-			return  Optional.empty();
-		}
-		
+	
 		String sql = "select channel from channel where id in (select channelid from equipments where phone='" + peer +"')";
 		
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
