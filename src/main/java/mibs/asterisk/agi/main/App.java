@@ -35,6 +35,8 @@ public class App {
 	public static final String CONFIG_NAME = "application.properties";
 	public static final int backlog = 10;
 	private static final int max_agi_records = 23;
+	
+	private static final String OUTBOUND_CHANNEL = "OUTBOUND_CHANNEL";
 	private String user;
 	private String password;
 	private String asterisk_host;
@@ -60,7 +62,7 @@ public class App {
 	public App(String file) {
 		prop = new Properties();
 		FileInputStream fis;
-
+		
 		try {
 //			input = getClass().getClassLoader().getResourceAsStream(CONFIG_NAME);
 			// input = getClass().getClassLoader().getResourceAsStream(file);
@@ -215,7 +217,40 @@ public class App {
 		}
 
 	}
-
+	private Optional<String> getOutBoundChannelCommand(String channel) {
+		String result = null;
+		String peer = null;
+		if (channel.contains("-")) {
+			peer = channel.split("-")[0];
+		}else {
+			logger.error("Error! Channel " + channel + " has wrong format ");
+			return  Optional.empty();
+		}
+		if (peer.startsWith("SIP/")) {
+			peer = peer.replace("SIP/", "").trim();
+		}else {
+			logger.error("Error! SIP Channel " + channel + " has wrong format ");
+			return  Optional.empty();
+		}
+		
+		String sql = "select channel from channel where id in (select channelid from equipments where phone='" + peer +"')";
+		
+		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
+				Statement statement = connect.createStatement();
+				ResultSet rs = statement.executeQuery(sql)) {
+			if (rs != null) {
+				if (rs.next()) {
+					result = new String(rs.getString("channel"));
+				} else {
+					logger.trace("Can't find channel for extension: " + peer);
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Error! Exception while finding channel for extension '" + peer + "' with message "
+					+ e.getMessage());
+		}
+		return (result != null) ? Optional.of(result) : Optional.empty();
+	}
 	private Optional<String> getInboundRecordCommand(String ext) {
 		String result = null;
 		String sql = "select recordin from equipments where phone='" + ext.trim() + "'";
@@ -236,9 +271,17 @@ public class App {
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
 
-	private Optional<String> getOutboundRecordCommand(String phone) {
-		String result = null;
-
+	private Optional<String> getOutboundRecordCommand(String channel) {
+		String result = "No";
+		String phone = null;
+		if (channel.contains("-")) {
+			String c0 = channel.split("-")[0];
+			phone = c0.substring(c0.lastIndexOf("/") + 1 , c0.length());
+			
+		}else {
+			return Optional.ofNullable(result);
+		}
+		logger.trace("Excecute Outbound Record Command for phome: '" + phone );
 		String sql = "select recordout from equipments where phone='" + phone.trim() + "'";
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement();
@@ -246,28 +289,18 @@ public class App {
 			if (rs != null) {
 				if (rs.next()) {
 					result = new String(rs.getString("recordout"));
-					logger.trace("Fine caller id for " + phone + " in getOutboundRecordCommand");
+					logger.trace("Find caller id for " + phone + " in getOutboundRecordCommand");
 				} else {
-					sql = "select recordout from equipments where external='" + phone.trim() + "'";
-					try (ResultSet rc = statement.executeQuery(sql)) {
-						if (rc != null) {
-							if (rc.next()) {
-								result = new String(rc.getString("recordout"));
-								logger.trace("Find recordout : '" + result + "' for callerid  " + phone);
-							} else {
-								logger.trace("Can't find recordout for phone: " + phone);
-							}
-						}
-					} catch (Exception e) {
-						logger.error("Error! Exception while finding external number: " + phone + " with message:  "
-								+ e.getMessage());
-					}
+					return Optional.ofNullable(result);
 				}
 			}
 		} catch (Exception e) {
 			logger.error("Error! Exception while finding phone: " + phone + " with message " + e.getMessage());
+	
+			return Optional.ofNullable(result);
 		}
-		return (result != null) ? Optional.of(result) : Optional.empty();
+	
+		return  Optional.ofNullable(result);
 	}
 
 	private Optional<String> getExternal(String callerid) {
@@ -363,7 +396,8 @@ public class App {
 	}
 
 	private void recordOutbound(Map<String, String> cmd, Socket socket) throws RecordOutboundException {
-		String channel = cmd.get("agi_callerid");
+	
+		String channel = cmd.get("agi_channel");
 
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
 			if (!(channel != null && channel.length() > 0)) {
@@ -409,6 +443,24 @@ public class App {
 			throw new RecordInboundException("IOException has occured while setting inbound sound recording variable");
 		}
 	}
+	private void channelOutbound(Map<String, String> cmd, Socket socket) throws OutboundChannelException {
+		String extension = cmd.get("agi_channel");
+		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
+			if (!(extension != null && extension.length() > 0)) {
+				writer.write("SET VARIABLE " + OUTBOUND_CHANNEL + " NO" + "\n");
+				writer.flush();
+				throw new OutboundChannelException(
+						"IOException has occured while setting outbound channel variable, extension is null");
+			}
+			Optional<String> com = getOutBoundChannelCommand(extension);
+			if (com.isPresent()) {
+				writer.write("SET VARIABLE " + OUTBOUND_CHANNEL + " " + com.get() + "\n");
+				writer.flush();
+			}
+		} catch (IOException e) {
+			throw new OutboundChannelException("IOException has occured while setting outbound channel  variable");
+		}
+	}
 
 	private void handleAGICommand(Map<String, String> cmd, Socket socket) {
 
@@ -441,7 +493,15 @@ public class App {
 				logger.error("Error! RecordOutboundException has occurred with message: " + e.getMessage());
 			}
 		}
-
+		if (command.equals("outbound_channel")) {
+			try {
+				channelOutbound(cmd, socket);
+			} catch (OutboundChannelException e) {
+				logger.error("Error! OutboundChannelException has occurred with message: " + e.getMessage());
+			}
+		}
+		
+		
 	}
 
 	public void run() {
