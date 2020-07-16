@@ -217,7 +217,8 @@ public class App {
 		}
 
 	}
-	private Optional<String> getOutBoundChannelCommand(String channel) {
+	private Optional<String> getOutBoundChannelCommand(String chan) {
+		String channel = chan;
 		String result = null;
 		String peer = null;
 		if (channel.contains("-")) {
@@ -244,7 +245,12 @@ public class App {
 			logger.error("Error! Exception while finding channel for extension '" + peer + "' with message "
 					+ e.getMessage());
 		}
-		return (result != null) ? Optional.of(result) : Optional.empty();
+		if (result != null) {
+			if (result.length() == 0) {
+				result = "DAHDI/i1";
+			}
+		}
+		return  Optional.ofNullable(result);
 	}
 	private Optional<String> getInboundRecordCommand(String ext) {
 		String result = null;
