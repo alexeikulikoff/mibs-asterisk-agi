@@ -229,6 +229,10 @@ public class App {
 			return  Optional.empty();
 		}
 	
+		if (peer.startsWith("DAHDI")) {
+			result = "DAHDI/i1";
+			return  Optional.ofNullable(result);
+		}
 		String sql = "select channel from channel where id in (select channelid from equipments where phone='" + peer +"')";
 		
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
