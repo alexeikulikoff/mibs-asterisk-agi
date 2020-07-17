@@ -221,6 +221,12 @@ public class App {
 		String channel = chan;
 		String result = null;
 		String peer = null;
+		
+		if (chan.startsWith("Local")) {
+			result = "DAHDI/i1";
+			return  Optional.ofNullable(result);
+		}
+		
 		if (channel.contains("-")) {
 			String c0 = channel.split("-")[0];
 			peer = c0.substring(c0.lastIndexOf("/") + 1 , c0.length());
@@ -309,6 +315,9 @@ public class App {
 	}
 
 	private Optional<String> getExternal(String callerid) {
+		
+		
+		
 		String result = null;
 		String sql = "select external from equipments where phone='" + callerid.trim() + "'";
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
@@ -450,6 +459,9 @@ public class App {
 	}
 	private void channelOutbound(Map<String, String> cmd, Socket socket) throws OutboundChannelException {
 		String extension = cmd.get("agi_channel");
+		
+		String callerid = cmd.get("agi_callerid");
+		
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
 			if (!(extension != null && extension.length() > 0)) {
 				writer.write("SET VARIABLE " + OUTBOUND_CHANNEL + " NO" + "\n");
@@ -457,6 +469,8 @@ public class App {
 				throw new OutboundChannelException(
 						"IOException has occured while setting outbound channel variable, extension is null");
 			}
+			
+			
 			Optional<String> com = getOutBoundChannelCommand(extension);
 			if (com.isPresent()) {
 				writer.write("SET VARIABLE " + OUTBOUND_CHANNEL + " " + com.get() + "\n");
