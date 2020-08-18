@@ -222,6 +222,8 @@ public class App {
 		String result = null;
 		String peer = null;
 		
+		logger.info("Outbount channel: "  + chan);
+		
 		if (chan.startsWith("Local")) {
 			result = "DAHDI/i1";
 			return  Optional.ofNullable(result);
