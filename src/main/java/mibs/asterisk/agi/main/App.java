@@ -3,9 +3,7 @@ package mibs.asterisk.agi.main;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.InetAddress;
@@ -15,7 +13,6 @@ import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,9 +20,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,7 +29,7 @@ public class App {
 	public static final String CONFIG_NAME = "application.properties";
 	public static final int backlog = 10;
 	private static final int max_agi_records = 23;
-	
+
 	private static final String OUTBOUND_CHANNEL = "OUTBOUND_CHANNEL";
 	private String user;
 	private String password;
@@ -62,7 +56,7 @@ public class App {
 	public App(String file) {
 		prop = new Properties();
 		FileInputStream fis;
-		
+
 		try {
 //			input = getClass().getClassLoader().getResourceAsStream(CONFIG_NAME);
 			// input = getClass().getClassLoader().getResourceAsStream(file);
@@ -115,7 +109,8 @@ public class App {
 				}
 			}
 		} catch (Exception e) {
-			logger.error("Error! Exception while finding  agentid, queueid for extension: " + extension);
+			logger.error("Error! Exception while finding  agentid, queueid for extension: " + extension + " message: "
+					+ e.getMessage());
 		}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
@@ -154,7 +149,8 @@ public class App {
 				logger.trace("Can't find peerid for name:  " + name);
 			}
 		} catch (Exception e) {
-			logger.error("Error! Exceptionwhile finding peerid for name: '" + name + "' with message " + e.getMessage());
+			logger.error(
+					"Error! Exceptionw hile finding peerid for name: '" + name + "' with message " + e.getMessage());
 		}
 		return (result != null) ? Optional.of(result) : Optional.empty();
 	}
@@ -177,12 +173,14 @@ public class App {
 					logger.trace(action);
 				}
 			} catch (AuthenticationFailedException | IOException e) {
-				logger.error("Error! AuthenticationFailedException | IOException in queue handling  with message:" + e.getMessage());
+				logger.error("Error! AuthenticationFailedException | IOException in queue handling  with message:"
+						+ e.getMessage());
 				clientSocket.close();
 			}
 		} catch (Exception e1) {
 
-			logger.error("Error! Wrong queue handling for queue name:  " + queueName + " and peer name: " + peerName + " with message:" + e1.getMessage());
+			logger.error("Error! Wrong queue handling for queue name:  " + queueName + " and peer name: " + peerName
+					+ " with message:" + e1.getMessage());
 		}
 		return (action != null) ? Optional.of(action.getActionResult().getActionResult()) : Optional.empty();
 	}
@@ -217,32 +215,34 @@ public class App {
 		}
 
 	}
+
 	private Optional<String> getOutBoundChannelCommand(String chan) {
 		String channel = chan;
 		String result = null;
 		String peer = null;
-		
-		logger.info("Outbount channel: "  + chan);
-		
+
+		logger.info("Outbount channel: " + chan);
+
 		if (chan.startsWith("Local")) {
 			result = "DAHDI/i1";
-			return  Optional.ofNullable(result);
+			return Optional.ofNullable(result);
 		}
-		
+
 		if (channel.contains("-")) {
 			String c0 = channel.split("-")[0];
-			peer = c0.substring(c0.lastIndexOf("/") + 1 , c0.length());
-		}else {
+			peer = c0.substring(c0.lastIndexOf("/") + 1, c0.length());
+		} else {
 			logger.error("Error! Channel " + channel + " has wrong format ");
-			return  Optional.empty();
+			return Optional.empty();
 		}
-	
+
 		if (peer.startsWith("DAHDI")) {
 			result = "DAHDI/i1";
-			return  Optional.ofNullable(result);
+			return Optional.ofNullable(result);
 		}
-		String sql = "select channel from channel where id in (select channelid from equipments where phone='" + peer +"')";
-		
+		String sql = "select channel from channel where id in (select channelid from equipments where phone='" + peer
+				+ "')";
+
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement();
 				ResultSet rs = statement.executeQuery(sql)) {
@@ -262,8 +262,9 @@ public class App {
 				result = "DAHDI/i1";
 			}
 		}
-		return  Optional.ofNullable(result);
+		return Optional.ofNullable(result);
 	}
+
 	private Optional<String> getInboundRecordCommand(String ext) {
 		String result = null;
 		String sql = "select recordin from equipments where phone='" + ext.trim() + "'";
@@ -289,12 +290,12 @@ public class App {
 		String phone = null;
 		if (channel.contains("-")) {
 			String c0 = channel.split("-")[0];
-			phone = c0.substring(c0.lastIndexOf("/") + 1 , c0.length());
-			
-		}else {
+			phone = c0.substring(c0.lastIndexOf("/") + 1, c0.length());
+
+		} else {
 			return Optional.ofNullable(result);
 		}
-		logger.trace("Excecute Outbound Record Command for phome: '" + phone );
+		logger.trace("Excecute Outbound Record Command for phome: '" + phone);
 		String sql = "select recordout from equipments where phone='" + phone.trim() + "'";
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
 				Statement statement = connect.createStatement();
@@ -309,17 +310,15 @@ public class App {
 			}
 		} catch (Exception e) {
 			logger.error("Error! Exception while finding phone: " + phone + " with message " + e.getMessage());
-	
+
 			return Optional.ofNullable(result);
 		}
-	
-		return  Optional.ofNullable(result);
+
+		return Optional.ofNullable(result);
 	}
 
 	private Optional<String> getExternal(String callerid) {
-		
-		
-		
+
 		String result = null;
 		String sql = "select external from equipments where phone='" + callerid.trim() + "'";
 		try (Connection connect = DriverManager.getConnection(dsControlURL(), control_dbuser, control_dbpassword);
@@ -412,7 +411,7 @@ public class App {
 	}
 
 	private void recordOutbound(Map<String, String> cmd, Socket socket) throws RecordOutboundException {
-	
+
 		String channel = cmd.get("agi_channel");
 
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
@@ -459,11 +458,12 @@ public class App {
 			throw new RecordInboundException("IOException has occured while setting inbound sound recording variable");
 		}
 	}
+
 	private void channelOutbound(Map<String, String> cmd, Socket socket) throws OutboundChannelException {
 		String extension = cmd.get("agi_channel");
-		
+
 		String callerid = cmd.get("agi_callerid");
-		
+
 		try (Writer writer = new OutputStreamWriter(socket.getOutputStream())) {
 			if (!(extension != null && extension.length() > 0)) {
 				writer.write("SET VARIABLE " + OUTBOUND_CHANNEL + " NO" + "\n");
@@ -471,8 +471,7 @@ public class App {
 				throw new OutboundChannelException(
 						"IOException has occured while setting outbound channel variable, extension is null");
 			}
-			
-			
+
 			Optional<String> com = getOutBoundChannelCommand(extension);
 			if (com.isPresent()) {
 				writer.write("SET VARIABLE " + OUTBOUND_CHANNEL + " " + com.get() + "\n");
@@ -521,8 +520,7 @@ public class App {
 				logger.error("Error! OutboundChannelException has occurred with message: " + e.getMessage());
 			}
 		}
-		
-		
+
 	}
 
 	public void run() {
